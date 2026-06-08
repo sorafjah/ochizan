@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>計算おちゲーム</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f6f8;       /* 明るいグレーがかった背景 */
+    --panel: #ffffff;    /* クリーンな白色パネル */
+    --border: #d0d7de;   /* 軽やかな境界線 */
+    --accent: #0969da;   /* 爽やかなメインブルー */
+    --green: #1a7f37;    /* 正解時の明るい緑 */
+    --red: #cf222e;      /* 不正解・警告時の赤 */
+    --yellow: #9a6700;   /* 深みのあるゴールド */
+    --purple: #8250df;   /* アクセントの紫 */
+    --orange: #bc4c00;   /* ストリーク用のオレンジ */
+    --text: #24292f;     /* 視認性の高いダークグレーの文字 */
+    --muted: #57606a;    /* 補助的なグレー文字 */
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    height: 100svh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  .screen {
+    display: none;
+    width: 100%;
+    max-width: 440px;
+    padding: 12px 16px;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    height: 100svh;
+    justify-content: center;
+    overflow-y: auto;
+  }
+  .screen.active { display: flex; }
+
+  /* ===== タイトル ===== */
+  .logo {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: clamp(1.6rem, 7vw, 2.2rem);
+    background: linear-gradient(120deg, var(--accent) 0%, var(--purple) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    text-align: center;
+    line-height: 1.7;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    align-self: flex-start;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+
+  /* ===== 種類選択（3列グリッド） ===== */
+  .mode-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    width: 100%;
+    flex-shrink: 0;
+  }
+
+  .mode-btn {
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s, background-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
+  }
+  .mode-btn:active { transform: scale(0.94); }
+  .mode-btn.selected {
+    border-color: var(--accent);
+    background: #f0f7ff;
+    box-shadow: 0 0 0 3px rgba(9,105,218,0.15);
+  }
+  .mode-btn .mode-icon { font-size: 1.3rem; margin-bottom: 2px; }
+  .mode-btn .mode-name { font-weight: bold; font-size: 0.78rem; line-height: 1.3; color: var(--text); }
+  .mode-btn .mode-desc { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+
+  /* チェックマーク */
+  .mode-btn .check {
+    display: none;
+    position: absolute;
+    top: 5px; right: 7px;
+    font-size: 0.75rem;
+    color: var(--accent);
+    font-weight: bold;
+  }
+  .mode-btn.selected .check { display: block; }
+
+  /* 警告メッセージ */
+  #mode-warning {
+    font-size: 0.75rem;
+    color: var(--red);
+    display: none;
+    align-self: flex-start;
+  }
+
+  /* ===== 速さスライダー ===== */
+  .slider-row { width: 100%; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .slider-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: bold; }
+  .slider-label span { color: var(--muted); font-size: 0.75rem; font-weight: normal; }
+
+  input[type=range] {
+    width: 100%; height: 6px;
+    -webkit-appearance: none;
+    background: var(--border);
+    border-radius: 3px; outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent); cursor: pointer;
+    box-shadow: 0 0 8px rgba(9,105,218,0.3);
+  }
+  .speed-labels { display: flex; justify-content: space-between; font-size: 0.65rem; color: var(--muted); margin-top: -2px; }
+
+  /* ===== スタートボタン ===== */
+  .start-btn {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--accent), #054da7);
+    color: white; border: none; border-radius: 14px;
+    font-family: Arial, sans-serif;
+    font-weight: bold; font-size: 1.1rem; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(9,105,218,0.3);
+    transition: transform 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    flex-shrink: 0;
+  }
+  .start-btn:active { transform: scale(0.97); }
+
+  /* ===== ゲーム画面 ===== */
+  #screen-game {
+    justify-content: flex-start;
+    padding-top: 8px;
+    gap: 6px;
+  }
+
+  .hud { display: flex; gap: 8px; width: 100%; flex-shrink: 0; }
+  .hud-card {
+    flex: 1; background: var(--panel);
+    border: 1.5px solid var(--border);
+    border-radius: 12px; padding: 5px 8px; text-align: center;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+  }
+  .hud-label { font-size: 0.6rem; color: var(--muted); letter-spacing: 0.08em; font-weight: bold; }
+  .hud-value { font-family: Arial, sans-serif; font-weight: bold; font-size: 1.25rem; line-height: 1.2; transition: transform 0.2s, color 0.2s; }
+  .hud-value.c-blue { color: var(--accent); }
+  .hud-value.c-red { color: var(--red); }
+  .hud-value.c-yellow { color: var(--yellow); }
+
+  /* フィールド (問題部分を最大化) */
+  #field {
+    width: 100%; flex: 1;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    position: relative; overflow: hidden; min-height: 0;
+    touch-action: manipulation;
+    box-shadow: inset 0 2px 8px rgba(0,0,0,0.04);
+  }
+  #field::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(208,215,222,0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(208,215,222,0.3) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* 落下ブロック */
+  .eq-block {
+    position: absolute;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 8px 14px;
+    text-align: center; z-index: 5;
+    min-width: 95px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateX(-50%);
+    pointer-events: none;
+    user-select: none;
+    transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+  }
+  .eq-text {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 1.2rem; color: var(--text); white-space: nowrap;
+  }
+  .eq-num { font-size: 0.65rem; color: var(--muted); margin-top: 2px; font-weight: bold; }
+
+  .eq-block.danger {
+    border-color: var(--red) !important;
+    box-shadow: 0 0 10px rgba(207,34,46,0.2) !important;
+  }
+  /* 自動選択された一番下のブロック */
+  .eq-block.active-target {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px rgba(9,105,218,0.25), 0 4px 12px rgba(9,105,218,0.15) !important;
+    background-color: #f0f7ff;
+    z-index: 10;
+  }
+  .eq-block.active-target .eq-text { color: var(--accent); }
+  .eq-block.active-target .eq-num { color: var(--accent); }
+
+  /* ===== 入力エリア (大幅にコンパクト化) ===== */
+  #input-area {
+    width: 100%; flex-shrink: 0;
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 14px;
+    padding: 6px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.02);
+  }
+
+  #target-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 32px;
+  }
+
+  #target-eq-text {
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 0.95rem;
+    color: var(--text);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  #target-eq-text.empty { color: var(--muted); font-size: 0.85rem; font-weight: normal; }
+
+  #answer-display {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 10px;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 1.25rem;
+    color: var(--accent);
+    min-width: 70px;
+    text-align: center;
+    transition: border-color 0.12s, color 0.12s;
+  }
+  #answer-display.has-value { border-color: var(--accent); }
+  #answer-display.correct-anim { border-color: var(--green); color: var(--green); }
+  #answer-display.wrong-anim  { border-color: var(--red); color: var(--red); animation: wrongShake 0.35s ease; }
+
+  @keyframes wrongShake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+  }
+
+  /* テンキーレイアウトの再構築 (高さを抑える調整) */
+  #input-layout {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+  }
+
+  #numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    flex: 3;
+  }
+
+  #action-pad {
+    display: flex;
+    flex-direction: column;
+    flex: 1.2;
+  }
+
+  .nkey {
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 2px; /* 高さを大幅にカット */
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    transition: background 0.08s, transform 0.08s;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nkey:active { background: #e2e8f0; transform: scale(0.92); }
+  
+  .nkey.del { 
+    color: var(--red); 
+    font-size: 0.9rem; 
+    background: #fff0f0;
+    border-color: #ffd8d8;
+  }
+  .nkey.del:active { background: #ffd8d8; }
+
+  .nkey.enter {
+    background: linear-gradient(135deg, var(--accent), #054da7);
+    color: white; 
+    font-size: 0.95rem; 
+    font-weight: bold;
+    border-color: transparent;
+    height: 100%;
+    box-shadow: 0 2px 6px rgba(9,105,218,0.2);
+  }
+  .nkey.enter:active { background: #054da7; }
+
+  /* フラッシュ */
+  #flash {
+    position: absolute; inset: 0;
+    pointer-events: none; opacity: 0; z-index: 30; border-radius: 14px;
+  }
+  @keyframes flashGood { 0% { opacity: 0.25; } 100% { opacity: 0; } }
+  @keyframes flashBad  { 0% { opacity: 0.25; } 100% { opacity: 0; } }
+  #flash.good { background: var(--green); animation: flashGood 0.4s ease forwards; }
+  #flash.bad  { background: var(--red);   animation: flashBad  0.4s ease forwards; }
+
+  /* スコアポップ */
+  .score-pop {
+    position: absolute;
+    font-family: Arial, sans-serif; font-weight: bold; font-size: 1.2rem;
+    pointer-events: none; z-index: 40;
+    animation: sPopAnim 0.9s ease forwards; white-space: nowrap;
+  }
+  @keyframes sPopAnim {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    80%  { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-42px) scale(1.2); }
+  }
+
+  /* モーダル */
+  .modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(244,246,248,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100; border-radius: 14px;
+    backdrop-filter: blur(4px);
+  }
+  .modal-box {
+    background: var(--panel);
+    border: 2px solid var(--border);
+    border-radius: 20px; padding: 24px 26px;
+    text-align: center; max-width: 290px; width: 90%;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+    animation: modalIn 0.3s cubic-bezier(.34,1.56,.64,1);
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
+  .modal-box h2 { font-family: Arial, sans-serif; font-weight: bold; font-size: 1.4rem; margin-bottom: 6px; color: var(--accent); }
+  .result-rows { margin: 12px 0; display: flex; flex-direction: column; gap: 6px; text-align: left; }
+  .result-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--muted); border-bottom: 1.5px solid var(--border); padding-bottom: 4px; }
+  .result-row strong { color: var(--text); font-family: Arial, sans-serif; font-weight: bold; }
+  .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
+  .modal-btn { flex: 1; padding: 11px; border: none; border-radius: 10px; font-family: Arial, sans-serif; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: transform 0.1s; -webkit-tap-highlight-color: transparent; }
+  .modal-btn:active { transform: scale(0.95); }
+  .modal-btn.primary { background: var(--accent); color: white; }
+  .modal-btn.secondary { background: var(--border); color: var(--text); }
+
+  /* ストリーク */
+  #streak-badge {
+    position: absolute; top: 8px; right: 8px;
+    background: linear-gradient(135deg, var(--orange), #ff8c00);
+    border-radius: 8px; padding: 4px 10px;
+    font-family: Arial, sans-serif; font-weight: bold; font-size: 0.75rem;
+    color: white; z-index: 20; display: none;
+    box-shadow: 0 2px 6px rgba(188,76,0,0.2);
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== タイトル画面 ===== -->
+<div class="screen active" id="screen-title">
+  <div class="logo">計算FALL</div>
+  <div class="subtitle">
+    落ちてくる問題をすばやく計算しよう！<br>
+    一番下にある問題が自動的に選ばれます。
+  </div>
+
+  <div class="section-title">問題の種類（複数選択OK）</div>
+  <div class="mode-grid">
+    <div class="mode-btn selected" data-mode="add20" onclick="toggleMode(this)">
+      <div class="check">✓</div>
+      <div class="mode-icon">➕</div>
+      <div class="mode-name">たし算<br>20まで</div>
+      <div class="mode-desc">1〜20</div>
+    </div>
+    <div class="mode-btn" data-mode="add100" onclick="toggleMode(this)">
+      <div class="check">✓</div>
+      <div class="mode-icon">➕</div>
+      <div class="mode-name">たし算<br>100まで</div>
+      <div class="mode-desc">1〜100</div>
+    </div>
+    <div class="mode-btn" data-mode="sub20" onclick="toggleMode(this)">
+      <div class="check">✓</div>
+      <div class="mode-icon">➖</div>
+      <div class="mode-name">ひき算<br>20まで</div>
+      <div class="mode-desc">答え0以上</div>
+    </div>
+    <div class="mode-btn" data-mode="sub100" onclick="toggleMode(this)">
+      <div class="check">✓</div>
+      <div class="mode-icon">➖</div>
+      <div class="mode-name">ひき算<br>100まで</div>
+      <div class="mode-desc">答え0以上</div>
+    </div>
+    <div class="mode-btn" data-mode="mul" onclick="toggleMode(this)">
+      <div class="check">✓</div>
+      <div class="mode-icon">✖️</div>
+      <div class="mode-name">かけ算</div>
+      <div class="mode-desc">1〜9の段</div>
+    </div>
+    <div class="mode-btn" data-mode="div" onclick="toggleMode(this)">
+      <div class="check">✓</div>
+      <div class="mode-icon">➗</div>
+      <div class="mode-name">わり算</div>
+      <div class="mode-desc">割り切れる</div>
+    </div>
+  </div>
+  <div id="mode-warning">1つ以上選んでください</div>
+
+  <div class="section-title">落ちる速さ</div>
+  <div class="slider-row">
+    <div class="slider-label">
+      速さ <span id="speed-label">ふつう</span>
+    </div>
+    <input type="range" id="speed-slider" min="1" max="5" value="3" oninput="updateSpeedLabel()">
+    <div class="speed-labels"><span>ゆっくり</span><span>はやい</span></div>
+  </div>
+
+  <button class="start-btn" onclick="startGame()">ゲームスタート！</button>
+</div>
+
+<!-- ===== ゲーム画面 ===== -->
+<div class="screen" id="screen-game">
+  <div class="hud">
+    <div class="hud-card">
+      <div class="hud-label">スコア</div>
+      <div class="hud-value c-blue" id="hud-score">0</div>
+    </div>
+    <div class="hud-card">
+      <div class="hud-label">ライフ</div>
+      <div class="hud-value c-red" id="hud-life">♥♥♥</div>
+    </div>
+    <div class="hud-card">
+      <div class="hud-label">のこり時間</div>
+      <div class="hud-value c-yellow" id="hud-timer">60</div>
+    </div>
+  </div>
+
+  <div id="field">
+    <div id="flash"></div>
+    <div id="streak-badge">🔥 x<span id="streak-num">0</span></div>
+  </div>
+
+  <div id="input-area">
+    <div id="target-display">
+      <div id="target-eq-text" class="empty">問題が出現するのを待っています...</div>
+      <div id="answer-display">—</div>
+    </div>
+    <div id="input-layout">
+      <!-- テンキー (左側 - パディングを抑えて省スペース化) -->
+      <div id="numpad">
+        <div class="nkey" onclick="numInput(7)">7</div>
+        <div class="nkey" onclick="numInput(8)">8</div>
+        <div class="nkey" onclick="numInput(9)">9</div>
+
+        <div class="nkey" onclick="numInput(4)">4</div>
+        <div class="nkey" onclick="numInput(5)">5</div>
+        <div class="nkey" onclick="numInput(6)">6</div>
+
+        <div class="nkey" onclick="numInput(1)">1</div>
+        <div class="nkey" onclick="numInput(2)">2</div>
+        <div class="nkey" onclick="numInput(3)">3</div>
+
+        <div class="nkey" style="grid-column: span 2;" onclick="numInput(0)">0</div>
+        <div class="nkey del" onclick="numDel()">DEL</div>
+      </div>
+      <!-- アクションパッド (右側 - 独立した大きい「こたえる」ボタン) -->
+      <div id="action-pad">
+        <div class="nkey enter" onclick="numEnter()">こたえる</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== 問題種類定義 =====
+const MODE_GENERATORS = {
+  add20: () => {
+    const a = 1 + Math.floor(Math.random() * 19);
+    const b = 1 + Math.floor(Math.random() * (20 - a));
+    return { text: `${a} + ${b}`, answer: a + b };
+  },
+  add100: () => {
+    const a = 1 + Math.floor(Math.random() * 99);
+    const b = 1 + Math.floor(Math.random() * (100 - a));
+    return { text: `${a} + ${b}`, answer: a + b };
+  },
+  sub20: () => {
+    const a = 2 + Math.floor(Math.random() * 19); // 2〜20
+    const b = 1 + Math.floor(Math.random() * a);  // 1〜a（答え0以上保証）
+    return { text: `${a} - ${b}`, answer: a - b };
+  },
+  sub100: () => {
+    const a = 2 + Math.floor(Math.random() * 99); // 2〜100
+    const b = 1 + Math.floor(Math.random() * a);
+    return { text: `${a} - ${b}`, answer: a - b };
+  },
+  mul: () => {
+    const a = 1 + Math.floor(Math.random() * 9);
+    const b = 1 + Math.floor(Math.random() * 9);
+    return { text: `${a} × ${b}`, answer: a * b };
+  },
+  div: () => {
+    const b = 1 + Math.floor(Math.random() * 9);       // 除数 1〜9
+    const answer = 1 + Math.floor(Math.random() * 9);  // 商 1〜9
+    const a = b * answer;
+    return { text: `${a} ÷ ${b}`, answer };
+  },
+};
+
+const SPEED_LABELS = ['ゆっくり', 'やや遅い', 'ふつう', 'やや速い', 'はやい'];
+const BASE_FALL_SPEEDS = [0.28, 0.5, 0.8, 1.2, 1.7];
+
+let selectedModes = new Set(['add20']);
+let speedLevel = 3;
+
+// ===== 状態 =====
+let score = 0, lives = 3, streak = 0, timeLeft = 60, maxStreak = 0;
+let timerInterval = null, gameLoopId = null, spawnIntervalId = null;
+let blocks = [], blockCounter = 0;
+let currentEq = null;
+let inputStr = '';
+let gameActive = false;
+
+// ===== 設定画面 =====
+function toggleMode(el) {
+  const mode = el.dataset.mode;
+  if (selectedModes.has(mode)) {
+    // 最低1つは必須
+    if (selectedModes.size <= 1) {
+      document.getElementById('mode-warning').style.display = 'block';
+      setTimeout(() => document.getElementById('mode-warning').style.display = 'none', 1800);
+      return;
+    }
+    selectedModes.delete(mode);
+    el.classList.remove('selected');
+  } else {
+    selectedModes.add(mode);
+    el.classList.add('selected');
+  }
+}
+
+function updateSpeedLabel() {
+  speedLevel = parseInt(document.getElementById('speed-slider').value);
+  document.getElementById('speed-label').textContent = SPEED_LABELS[speedLevel - 1];
+}
+
+// ===== 式生成（選択中のモードからランダムに1つ選ぶ） =====
+function generateEq() {
+  const modes = [...selectedModes];
+  const mode = modes[Math.floor(Math.random() * modes.length)];
+  return MODE_GENERATORS[mode]();
+}
+
+// ===== ブロック生成 =====
+function spawnBlock() {
+  if (!gameActive) return;
+
+  // ===== 問題の間隔を空ける安全チェック =====
+  // 画面内の最も上（y座標が最も小さい）にあるブロックのy座標を調べる
+  let minY = 9999;
+  for (const b of blocks) {
+    if (b.active && b.y < minY) {
+      minY = b.y;
+    }
+  }
+  // 最上部にあるブロックがまだ十分下に下がっていない（縦に約2行分(120px)空いていない）場合は、今回の生成をスキップ
+  if (minY < 120) {
+    return;
+  }
+
+  const field = document.getElementById('field');
+  const fw = field.offsetWidth;
+  const eq = generateEq();
+  const id = blockCounter++;
+
+  const el = document.createElement('div');
+  el.className = 'eq-block';
+  el.innerHTML = `<div class="eq-text">${eq.text}</div><div class="eq-num">= ?</div>`;
+
+  const blockW = 110;
+  const x = (blockW / 2 + 10) + Math.random() * (fw - blockW - 20);
+  el.style.left = x + 'px';
+  el.style.top = '-70px';
+
+  field.appendChild(el);
+  blocks.push({ id, el, eq, y: -70, active: true });
+
+  // 生成後、即ターゲットを自動更新
+  updateAutoTarget();
+}
+
+// ===== ターゲット自動選択処理 (一番下のブロックを自動で選択) =====
+function updateAutoTarget() {
+  if (!gameActive) return;
+
+  const activeBlocks = blocks.filter(b => b.active);
+
+  if (activeBlocks.length === 0) {
+    if (currentEq) {
+      currentEq = null;
+      inputStr = '';
+      updateInputDisplay();
+      setTargetText(null);
+    }
+    return;
+  }
+
+  // y座標が一番大きい（最も下にある）ブロックを見つける
+  let lowestBlock = null;
+  let maxY = -9999;
+  for (const b of activeBlocks) {
+    if (b.y > maxY) {
+      maxY = b.y;
+      lowestBlock = b;
+    }
+  }
+
+  if (lowestBlock) {
+    // すでに選ばれているターゲットと異なる場合のみ更新
+    if (!currentEq || currentEq.id !== lowestBlock.id) {
+      // 全ブロックの選択枠スタイルを一旦解除
+      blocks.forEach(b => b.el.classList.remove('active-target'));
+      
+      currentEq = lowestBlock;
+      currentEq.el.classList.add('active-target');
+      
+      // 自動で切り替わったとき、入力中の文字をリセット
+      inputStr = '';
+      updateInputDisplay();
+      setTargetText(currentEq.eq);
+    }
+  }
+}
+
+function setTargetText(eq) {
+  const el = document.getElementById('target-eq-text');
+  if (!eq) {
+    el.textContent = '問題が出現するのを待っています...';
+    el.className = 'empty';
+  } else {
+    el.textContent = eq.text + ' =';
+    el.className = '';
+  }
+}
+
+// ===== テンキー =====
+function numInput(n) {
+  if (!gameActive) return;
+  if (inputStr.length >= 4) return;
+  inputStr += String(n);
+  updateInputDisplay();
+}
+
+function numDel() {
+  if (!gameActive) return;
+  inputStr = inputStr.slice(0, -1);
+  updateInputDisplay();
+}
+
+function numEnter() {
+  if (!gameActive) return;
+  if (!currentEq) {
+    const disp = document.getElementById('answer-display');
+    disp.style.borderColor = 'var(--yellow)';
+    setTimeout(() => { disp.style.borderColor = ''; }, 400);
+    return;
+  }
+  if (inputStr === '') return;
+
+  const entered = parseInt(inputStr, 10);
+  const answer = currentEq.eq.answer;
+
+  if (entered === answer) {
+    streak++;
+    maxStreak = Math.max(maxStreak, streak);
+    const pts = 10 + (streak > 1 ? (streak - 1) * 5 : 0);
+    score += pts;
+    triggerFlash('good');
+
+    // ===== 5問連続正解で3秒増やすロジック =====
+    let timeAdded = false;
+    if (streak > 0 && streak % 5 === 0) {
+      timeLeft += 3;
+      document.getElementById('hud-timer').textContent = timeLeft;
+      timeAdded = true;
+
+      // タイマー（HUD）に回復したことを示す緑の強調エフェクトを適用
+      const timerVal = document.getElementById('hud-timer');
+      timerVal.style.color = 'var(--green)';
+      timerVal.style.transform = 'scale(1.25)';
+      setTimeout(() => {
+        timerVal.style.transform = 'scale(1)';
+        timerVal.style.color = timeLeft <= 10 ? 'var(--red)' : 'var(--yellow)';
+      }, 800);
+    }
+
+    showScorePop('+' + pts + (timeAdded ? ' (⏱+3s)' : ''), streak > 1 ? '🔥' : '');
+    showCorrectOnDisplay();
+    updateStreakBadge();
+    removeBlock(currentEq.id, true);
+    currentEq = null;
+    setTargetText(null);
+    updateHUD();
+    setTimeout(() => { 
+      inputStr = ''; 
+      updateInputDisplay(); 
+      updateAutoTarget(); // ターゲットを再更新
+    }, 350);
+  } else {
+    streak = 0;
+    lives--;
+    triggerFlash('bad');
+    showWrongOnDisplay(answer);
+    updateStreakBadge();
+    updateHUD();
+    if (lives <= 0) {
+      setTimeout(() => endGame(), 600);
+    } else {
+      setTimeout(() => { inputStr = ''; updateInputDisplay(); }, 700);
+    }
+  }
+}
+
+function updateInputDisplay() {
+  const disp = document.getElementById('answer-display');
+  if (inputStr === '') { disp.textContent = '—'; disp.className = ''; }
+  else { disp.textContent = inputStr; disp.className = 'has-value'; }
+}
+function showCorrectOnDisplay() {
+  document.getElementById('answer-display').className = 'correct-anim';
+}
+function showWrongOnDisplay(answer) {
+  const disp = document.getElementById('answer-display');
+  disp.textContent = '→' + answer;
+  disp.className = 'wrong-anim';
+}
+
+// ===== ブロック削除 =====
+function removeBlock(id, success) {
+  const idx = blocks.findIndex(b => b.id === id);
+  if (idx === -1) return;
+  const block = blocks[idx];
+  block.active = false;
+  if (success) {
+    block.el.style.transition = 'opacity 0.2s, transform 0.2s';
+    block.el.style.opacity = '0';
+    block.el.style.transform = 'translateX(-50%) scale(1.5)';
+  } else {
+    block.el.style.transition = 'opacity 0.28s';
+    block.el.style.opacity = '0';
+  }
+  setTimeout(() => block.el.remove(), 300);
+  blocks.splice(idx, 1);
+}
+
+// ===== メインループ =====
+function gameTick() {
+  if (!gameActive) return;
+  const field = document.getElementById('field');
+  const fh = field.offsetHeight;
+  const speed = BASE_FALL_SPEEDS[speedLevel - 1];
+
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const block = blocks[i];
+    if (!block.active) continue;
+    block.y += speed;
+    block.el.style.top = block.y + 'px';
+
+    // 画面の下半分を超えたら危険色にする
+    if (block.y > fh * 0.6) {
+      block.el.classList.add('danger');
+    }
+
+    // 画面外に落ち切った場合
+    if (block.y > fh) {
+      if (currentEq && currentEq.id === block.id) {
+        currentEq = null;
+        inputStr = '';
+        updateInputDisplay();
+        setTargetText(null);
+      }
+      streak = 0;
+      lives--;
+      triggerFlash('bad');
+      updateHUD();
+      updateStreakBadge();
+      removeBlock(block.id, false);
+      if (lives <= 0) { endGame(); return; }
+    }
+  }
+
+  // 常に一番下にあるブロックをターゲットに自動指定する
+  updateAutoTarget();
+
+  gameLoopId = requestAnimationFrame(gameTick);
+}
+
+// ===== タイマー =====
+function startTimer() {
+  timeLeft = 60;
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    document.getElementById('hud-timer').textContent = timeLeft;
+    
+    // 残り時間に応じたカラー変更 (回復して10秒を超えた場合は黄色に戻す)
+    if (timeLeft <= 10) {
+      document.getElementById('hud-timer').style.color = 'var(--red)';
+    } else {
+      document.getElementById('hud-timer').style.color = 'var(--yellow)';
+    }
+    
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+}
+
+// ===== HUD =====
+function updateHUD() {
+  document.getElementById('hud-score').textContent = score;
+  document.getElementById('hud-life').textContent = '♥'.repeat(Math.max(0, lives));
+}
+function updateStreakBadge() {
+  const badge = document.getElementById('streak-badge');
+  if (streak >= 2) {
+    badge.style.display = 'block';
+    document.getElementById('streak-num').textContent = streak;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+// ===== エフェクト =====
+function triggerFlash(type) {
+  const f = document.getElementById('flash');
+  f.className = ''; void f.offsetWidth; f.className = type;
+}
+function showScorePop(text, extra) {
+  const field = document.getElementById('field');
+  const el = document.createElement('div');
+  el.className = 'score-pop';
+  el.textContent = (extra || '') + text;
+  el.style.left = (field.offsetWidth * 0.5 - 24) + 'px';
+  el.style.top = (field.offsetHeight * 0.4) + 'px';
+  el.style.color = streak > 2 ? 'var(--orange)' : 'var(--green)';
+  field.appendChild(el);
+  setTimeout(() => el.remove(), 900);
+}
+
+// ===== ゲーム開始 =====
+function startGame() {
+  if (selectedModes.size === 0) {
+    document.getElementById('mode-warning').style.display = 'block';
+    setTimeout(() => document.getElementById('mode-warning').style.display = 'none', 1800);
+    return;
+  }
+
+  score = 0; lives = 3; streak = 0; timeLeft = 60; maxStreak = 0;
+  blocks = []; blockCounter = 0;
+  currentEq = null; inputStr = '';
+  gameActive = true;
+
+  document.getElementById('hud-timer').style.color = '';
+  updateHUD(); updateStreakBadge(); updateInputDisplay(); setTargetText(null);
+
+  const field = document.getElementById('field');
+  field.querySelectorAll('.eq-block').forEach(e => e.remove());
+
+  document.getElementById('screen-title').classList.remove('active');
+  document.getElementById('screen-game').classList.add('active');
+
+  setTimeout(() => {
+    // 最初のブロックを生成
+    const el = document.createElement('div'); // 仮生成用
+    spawnBlock();
+    
+    // スポーンチェックの頻度を上げる（スキップされた場合に次のチャンスをすぐ得るため）
+    const spawnMs = Math.max(1800 - speedLevel * 200, 800);
+    spawnIntervalId = setInterval(() => { 
+      if (gameActive) spawnBlock(); 
+    }, spawnMs);
+    
+    gameLoopId = requestAnimationFrame(gameTick);
+    startTimer();
+  }, 200);
+}
+
+// ===== 選択モード名を作る =====
+function buildModeLabel() {
+  const names = {
+    add20: 'たし算20', add100: 'たし算100',
+    sub20: 'ひき算20', sub100: 'ひき算100',
+    mul: 'かけ算', div: 'わり算'
+  };
+  return [...selectedModes].map(m => names[m]).join('・');
+}
+
+// ===== ゲーム終了 =====
+function endGame() {
+  gameActive = false;
+  clearInterval(timerInterval);
+  clearInterval(spawnIntervalId);
+  cancelAnimationFrame(gameLoopId);
+
+  const field = document.getElementById('field');
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  const grade = score >= 300 ? '🏆 すごい！' : score >= 150 ? '👏 よくできた！' : '😊 がんばった！';
+  overlay.innerHTML = `
+    <div class="modal-box">
+      <h2>ゲーム終了</h2>
+      <div style="font-size:1.5rem;margin:5px 0">${grade}</div>
+      <div class="result-rows">
+        <div class="result-row"><span>スコア</span><strong>${score}</strong></div>
+        <div class="result-row"><span>種類</span><strong style="font-size:0.75rem;font-family:inherit">${buildModeLabel()}</strong></div>
+        <div class="result-row"><span>ライフ残り</span><strong>${'♥'.repeat(Math.max(0,lives)) || 'なし'}</strong></div>
+        <div class="result-row"><span>最高連続正解</span><strong>${maxStreak}</strong></div>
+      </div>
+      <div class="modal-btns">
+        <button class="modal-btn secondary" onclick="goTitle()">もどる</button>
+        <button class="modal-btn primary" onclick="retryGame()">もういちど</button>
+      </div>
+    </div>
+  `;
+  field.appendChild(overlay);
+}
+
+function goTitle() {
+  document.getElementById('screen-game').classList.remove('active');
+  document.getElementById('screen-title').classList.add('active');
+  document.getElementById('field').querySelectorAll('.modal-overlay,.eq-block').forEach(e => e.remove());
+}
+function retryGame() {
+  document.getElementById('field').querySelectorAll('.modal-overlay,.eq-block').forEach(e => e.remove());
+  startGame();
+}
+</script>
+</body>
+</html>
