@@ -3,21 +3,21 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>計算おちゲーム</title>
+<title>おち算</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg: #f4f6f8;       /* 明るいグレーがかった背景 */
-    --panel: #ffffff;    /* クリーンな白色パネル */
+    --bg: #f4f6f8;       /* 明るいグレーの背景 */
+    --panel: #ffffff;    /* 白色パネル */
     --border: #d0d7de;   /* 軽やかな境界線 */
     --accent: #0969da;   /* 爽やかなメインブルー */
-    --green: #1a7f37;    /* 正解時の明るい緑 */
-    --red: #cf222e;      /* 不正解・警告時の赤 */
-    --yellow: #9a6700;   /* 深みのあるゴールド */
+    --green: #1a7f37;    /* 正解・時間追加の緑 */
+    --red: #cf222e;      /* 不正解・警告の赤 */
+    --yellow: #9a6700;   /* ゴールド */
     --purple: #8250df;   /* アクセントの紫 */
     --orange: #bc4c00;   /* ストリーク用のオレンジ */
-    --text: #24292f;     /* 視認性の高いダークグレーの文字 */
+    --text: #24292f;     /* ダークグレー文字 */
     --muted: #57606a;    /* 補助的なグレー文字 */
   }
 
@@ -50,53 +50,85 @@
   .logo {
     font-family: Arial, sans-serif;
     font-weight: bold;
-    font-size: clamp(1.6rem, 7vw, 2.2rem);
+    font-size: clamp(2rem, 9vw, 2.8rem);
     background: linear-gradient(120deg, var(--accent) 0%, var(--purple) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.06em;
     flex-shrink: 0;
+    margin-bottom: -4px;
   }
 
   .subtitle {
     color: var(--muted);
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     text-align: center;
-    line-height: 1.7;
+    line-height: 1.6;
+    flex-shrink: 0;
+  }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 6px;
     flex-shrink: 0;
   }
 
   .section-title {
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: bold;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--muted);
-    align-self: flex-start;
-    flex-shrink: 0;
-    margin-top: 4px;
   }
+
+  /* カスタム追加ボタン */
+  .custom-add-btn {
+    background: #f0f7ff;
+    color: var(--accent);
+    border: 1px solid rgba(9,105,218,0.3);
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .custom-add-btn:active { background: #ddedff; }
 
   /* ===== 種類選択（3列グリッド） ===== */
   .mode-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 8px;
     width: 100%;
-    flex-shrink: 0;
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 2px;
+    flex-shrink: 1;
   }
 
   .mode-btn {
     background: var(--panel);
     border: 2px solid var(--border);
     border-radius: 12px;
-    padding: 10px 6px;
+    padding: 10px 4px;
     cursor: pointer;
     text-align: center;
     transition: border-color 0.15s, transform 0.1s, box-shadow 0.15s, background-color 0.15s;
     -webkit-tap-highlight-color: transparent;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 76px;
   }
   .mode-btn:active { transform: scale(0.94); }
   .mode-btn.selected {
@@ -104,20 +136,38 @@
     background: #f0f7ff;
     box-shadow: 0 0 0 3px rgba(9,105,218,0.15);
   }
-  .mode-btn .mode-icon { font-size: 1.3rem; margin-bottom: 2px; }
-  .mode-btn .mode-name { font-weight: bold; font-size: 0.78rem; line-height: 1.3; color: var(--text); }
-  .mode-btn .mode-desc { font-size: 0.62rem; color: var(--muted); margin-top: 2px; }
+  .mode-btn .mode-icon { font-size: 1.2rem; margin-bottom: 2px; }
+  .mode-btn .mode-name { font-weight: bold; font-size: 0.76rem; line-height: 1.3; color: var(--text); word-break: break-all; }
+  .mode-btn .mode-desc { font-size: 0.6rem; color: var(--muted); margin-top: 2px; }
 
   /* チェックマーク */
   .mode-btn .check {
     display: none;
     position: absolute;
     top: 5px; right: 7px;
-    font-size: 0.75rem;
+    font-size: 0.72rem;
     color: var(--accent);
     font-weight: bold;
   }
   .mode-btn.selected .check { display: block; }
+
+  /* カスタム削除ボタン */
+  .mode-btn .trash-btn {
+    position: absolute;
+    bottom: 4px; right: 4px;
+    background: transparent;
+    border: none;
+    color: #cf222e;
+    font-size: 0.75rem;
+    padding: 4px;
+    cursor: pointer;
+    display: none;
+    z-index: 2;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .mode-btn:hover .trash-btn, .mode-btn:active .trash-btn { display: block; }
+  /* タッチデバイスでも削除しやすく表示 */
+  .mode-btn.is-custom .trash-btn { display: block; }
 
   /* 警告メッセージ */
   #mode-warning {
@@ -128,7 +178,7 @@
   }
 
   /* ===== 速さスライダー ===== */
-  .slider-row { width: 100%; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .slider-row { width: 100%; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
   .slider-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: bold; }
   .slider-label span { color: var(--muted); font-size: 0.75rem; font-weight: normal; }
 
@@ -140,7 +190,7 @@
   }
   input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 22px; height: 22px; border-radius: 50%;
+    width: 20px; height: 20px; border-radius: 50%;
     background: var(--accent); cursor: pointer;
     box-shadow: 0 0 8px rgba(9,105,218,0.3);
   }
@@ -236,7 +286,7 @@
   .eq-block.active-target .eq-text { color: var(--accent); }
   .eq-block.active-target .eq-num { color: var(--accent); }
 
-  /* ===== 入力エリア (大幅にコンパクト化) ===== */
+  /* ===== 入力エリア (非常にコンパクト) ===== */
   #input-area {
     width: 100%; flex-shrink: 0;
     background: var(--panel);
@@ -292,7 +342,7 @@
     75% { transform: translateX(5px); }
   }
 
-  /* テンキーレイアウトの再構築 (高さを抑える調整) */
+  /* テンキー＆こたえるボタン */
   #input-layout {
     display: flex;
     gap: 6px;
@@ -316,7 +366,7 @@
     background: var(--bg);
     border: 1.5px solid var(--border);
     border-radius: 8px;
-    padding: 7px 2px; /* 高さを大幅にカット */
+    padding: 7px 2px;
     font-family: Arial, sans-serif;
     font-weight: bold;
     font-size: 1.1rem;
@@ -377,7 +427,7 @@
   /* モーダル */
   .modal-overlay {
     position: absolute; inset: 0;
-    background: rgba(244,246,248,0.85);
+    background: rgba(244,246,248,0.92);
     display: flex; align-items: center; justify-content: center;
     z-index: 100; border-radius: 14px;
     backdrop-filter: blur(4px);
@@ -385,16 +435,20 @@
   .modal-box {
     background: var(--panel);
     border: 2px solid var(--border);
-    border-radius: 20px; padding: 24px 26px;
-    text-align: center; max-width: 290px; width: 90%;
+    border-radius: 20px; padding: 20px 24px;
+    text-align: center; max-width: 320px; width: 92%;
     box-shadow: 0 10px 25px rgba(0,0,0,0.08);
     animation: modalIn 0.3s cubic-bezier(.34,1.56,.64,1);
+    max-height: 90vh;
+    overflow-y: auto;
   }
   @keyframes modalIn { from { opacity: 0; transform: scale(0.8); } to { opacity: 1; transform: scale(1); } }
-  .modal-box h2 { font-family: Arial, sans-serif; font-weight: bold; font-size: 1.4rem; margin-bottom: 6px; color: var(--accent); }
+  .modal-box h2 { font-family: Arial, sans-serif; font-weight: bold; font-size: 1.3rem; margin-bottom: 6px; color: var(--accent); }
+  
   .result-rows { margin: 12px 0; display: flex; flex-direction: column; gap: 6px; text-align: left; }
   .result-row { display: flex; justify-content: space-between; font-size: 0.9rem; color: var(--muted); border-bottom: 1.5px solid var(--border); padding-bottom: 4px; }
   .result-row strong { color: var(--text); font-family: Arial, sans-serif; font-weight: bold; }
+  
   .modal-btns { display: flex; gap: 8px; margin-top: 14px; }
   .modal-btn { flex: 1; padding: 11px; border: none; border-radius: 10px; font-family: Arial, sans-serif; font-weight: bold; font-size: 0.9rem; cursor: pointer; transition: transform 0.1s; -webkit-tap-highlight-color: transparent; }
   .modal-btn:active { transform: scale(0.95); }
@@ -410,56 +464,161 @@
     color: white; z-index: 20; display: none;
     box-shadow: 0 2px 6px rgba(188,76,0,0.2);
   }
+
+  /* ===== カスタム設定ダイアログ専用 ===== */
+  .custom-form {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 10px;
+  }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .form-group label {
+    font-size: 0.78rem;
+    font-weight: bold;
+    color: var(--text);
+  }
+  .form-group input[type="text"] {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .form-group input[type="text"]:focus {
+    border-color: var(--accent);
+  }
+  .op-select-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+  .op-option {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 0;
+    text-align: center;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: bold;
+    background: var(--bg);
+  }
+  .op-option.selected {
+    border-color: var(--accent);
+    background: #f0f7ff;
+    color: var(--accent);
+  }
+
+  .range-inputs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .range-box {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px;
+    background: #f8f9fa;
+  }
+  .range-box-title {
+    font-size: 0.68rem;
+    font-weight: bold;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-align: center;
+  }
+  .range-fields {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .range-fields input {
+    width: 100%;
+    padding: 4px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    text-align: center;
+  }
+
+  /* かけ算用、わり算用の切り替えUI */
+  .sub-setting-section {
+    border-top: 1.5px dashed var(--border);
+    padding-top: 10px;
+    margin-top: 4px;
+  }
+
+  .dan-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 5px;
+    max-height: 110px;
+    overflow-y: auto;
+    padding: 4px;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    background: #f8f9fa;
+  }
+  .dan-item {
+    padding: 4px 0;
+    font-size: 0.78rem;
+    text-align: center;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    background: white;
+  }
+  .dan-item.selected {
+    border-color: var(--accent);
+    background: #f0f7ff;
+    color: var(--accent);
+  }
+
+  .form-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 6px;
+  }
+  .form-toggle input {
+    cursor: pointer;
+  }
+
+  .hint-text {
+    font-size: 0.65rem;
+    color: var(--muted);
+    line-height: 1.3;
+  }
 </style>
 </head>
 <body>
 
 <!-- ===== タイトル画面 ===== -->
 <div class="screen active" id="screen-title">
-  <div class="logo">計算FALL</div>
+  <div class="logo">おち算</div>
   <div class="subtitle">
     落ちてくる問題をすばやく計算しよう！<br>
     一番下にある問題が自動的に選ばれます。
   </div>
 
-  <div class="section-title">問題の種類（複数選択OK）</div>
-  <div class="mode-grid">
-    <div class="mode-btn selected" data-mode="add20" onclick="toggleMode(this)">
-      <div class="check">✓</div>
-      <div class="mode-icon">➕</div>
-      <div class="mode-name">たし算<br>20まで</div>
-      <div class="mode-desc">1〜20</div>
-    </div>
-    <div class="mode-btn" data-mode="add100" onclick="toggleMode(this)">
-      <div class="check">✓</div>
-      <div class="mode-icon">➕</div>
-      <div class="mode-name">たし算<br>100まで</div>
-      <div class="mode-desc">1〜100</div>
-    </div>
-    <div class="mode-btn" data-mode="sub20" onclick="toggleMode(this)">
-      <div class="check">✓</div>
-      <div class="mode-icon">➖</div>
-      <div class="mode-name">ひき算<br>20まで</div>
-      <div class="mode-desc">答え0以上</div>
-    </div>
-    <div class="mode-btn" data-mode="sub100" onclick="toggleMode(this)">
-      <div class="check">✓</div>
-      <div class="mode-icon">➖</div>
-      <div class="mode-name">ひき算<br>100まで</div>
-      <div class="mode-desc">答え0以上</div>
-    </div>
-    <div class="mode-btn" data-mode="mul" onclick="toggleMode(this)">
-      <div class="check">✓</div>
-      <div class="mode-icon">✖️</div>
-      <div class="mode-name">かけ算</div>
-      <div class="mode-desc">1〜9の段</div>
-    </div>
-    <div class="mode-btn" data-mode="div" onclick="toggleMode(this)">
-      <div class="check">✓</div>
-      <div class="mode-icon">➗</div>
-      <div class="mode-name">わり算</div>
-      <div class="mode-desc">割り切れる</div>
-    </div>
+  <div class="section-header">
+    <div class="section-title">問題の種類（複数選択OK）</div>
+    <button class="custom-add-btn" onclick="openCustomModal()">
+      <span>➕</span>カスタム追加
+    </button>
+  </div>
+  <div class="mode-grid" id="mode-grid">
+    <!-- 動的に初期化・生成 -->
   </div>
   <div id="mode-warning">1つ以上選んでください</div>
 
@@ -503,7 +662,7 @@
       <div id="answer-display">—</div>
     </div>
     <div id="input-layout">
-      <!-- テンキー (左側 - パディングを抑えて省スペース化) -->
+      <!-- テンキー (左側) -->
       <div id="numpad">
         <div class="nkey" onclick="numInput(7)">7</div>
         <div class="nkey" onclick="numInput(8)">8</div>
@@ -520,7 +679,7 @@
         <div class="nkey" style="grid-column: span 2;" onclick="numInput(0)">0</div>
         <div class="nkey del" onclick="numDel()">DEL</div>
       </div>
-      <!-- アクションパッド (右側 - 独立した大きい「こたえる」ボタン) -->
+      <!-- アクションパッド (右側) -->
       <div id="action-pad">
         <div class="nkey enter" onclick="numEnter()">こたえる</div>
       </div>
@@ -528,47 +687,263 @@
   </div>
 </div>
 
+<!-- ===== カスタム問題追加モーダル ===== -->
+<div class="modal-overlay" id="custom-modal" style="display:none;">
+  <div class="modal-box">
+    <h2>カスタム問題をつくる</h2>
+    <div class="custom-form">
+      <div class="form-group">
+        <label for="custom-name">名前（6文字以内）</label>
+        <input type="text" id="custom-name" maxlength="6" value="カスタム1">
+      </div>
+
+      <div class="form-group">
+        <label>計算の種類</label>
+        <div class="op-select-grid">
+          <div class="op-option selected" id="op-add" onclick="setCustomOp('add')">➕</div>
+          <div class="op-option" id="op-sub" onclick="setCustomOp('sub')">➖</div>
+          <div class="op-option" id="op-mul" onclick="setCustomOp('mul')">✖️</div>
+          <div class="op-option" id="op-div" onclick="setCustomOp('div')">➗</div>
+        </div>
+      </div>
+
+      <!-- たし算・ひき算・わり算用数値設定 -->
+      <div class="form-group" id="number-range-setting">
+        <label id="range-setting-title">数の設定 (0〜99)</label>
+        <div class="range-inputs">
+          <div class="range-box">
+            <div class="range-box-title">前の数</div>
+            <div class="range-fields">
+              <input type="number" id="range-min-a" min="0" max="99" value="1">
+              <span>〜</span>
+              <input type="number" id="range-max-a" min="0" max="99" value="20">
+            </div>
+          </div>
+          <div class="range-box">
+            <div class="range-box-title">後の数</div>
+            <div class="range-fields">
+              <input type="number" id="range-min-b" min="0" max="99" value="1">
+              <span>〜</span>
+              <input type="number" id="range-max-b" min="0" max="99" value="20">
+            </div>
+          </div>
+        </div>
+        <div class="hint-text" id="op-special-hint">
+          ※ひき算の場合、マイナスにならないよう後の数は自動的に制限されます。
+        </div>
+      </div>
+
+      <!-- かけ算用特殊設定 -->
+      <div class="sub-setting-section" id="mul-special-setting" style="display:none;">
+        <label class="form-toggle">
+          <input type="checkbox" id="mul-use-range" onchange="toggleMulType()"> 数の範囲で選ぶ
+        </label>
+        
+        <!-- 九九の段指定 (デフォルト) -->
+        <div id="mul-dan-container">
+          <div style="font-size:0.75rem; font-weight:bold; margin-bottom:4px; color:var(--text)">かける段 (複数えらぶ)</div>
+          <div class="dan-grid" id="mul-dan-grid">
+            <!-- 1〜12の段を動的に生成 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- わり算用特殊設定 -->
+      <div class="sub-setting-section" id="div-special-setting" style="display:none;">
+        <label class="form-toggle">
+          <input type="checkbox" id="div-use-range" checked onchange="toggleDivType()"> かけ算九九の範囲にする
+        </label>
+        <div class="hint-text">
+          ※あまりは出ず、0除算を行わないよう自動調整されます。前の数の方が大きくなります。
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-btn secondary" onclick="closeCustomModal()">キャンセル</button>
+      <button class="modal-btn primary" onclick="saveCustomMode()">追加する</button>
+    </div>
+  </div>
+</div>
+
 <script>
-// ===== 問題種類定義 =====
-const MODE_GENERATORS = {
-  add20: () => {
-    const a = 1 + Math.floor(Math.random() * 19);
-    const b = 1 + Math.floor(Math.random() * (20 - a));
-    return { text: `${a} + ${b}`, answer: a + b };
+// ===== Web Audio API 効果音システム =====
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function playSound(type) {
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+  const now = audioCtx.currentTime;
+
+  switch(type) {
+    case 'start':
+      // ゲーム開始カウントダウン風
+      playTone(392, 0.08, now); // ソ
+      playTone(440, 0.08, now + 0.12); // ラ
+      playTone(493.88, 0.08, now + 0.24); // シ
+      playTone(523.25, 0.25, now + 0.36); // ド
+      break;
+
+    case 'correct':
+      // ピコーン！という気持ちの良い正解音
+      {
+        const osc1 = audioCtx.createOscillator();
+        const osc2 = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(523.25, now); // ド
+        osc1.frequency.exponentialRampToValueAtTime(1046.50, now + 0.12); // 高いド
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(659.25, now); // ミ
+        osc2.frequency.exponentialRampToValueAtTime(1318.51, now + 0.12); // 高いミ
+
+        gainNode.gain.setValueAtTime(0.08, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+
+        osc1.connect(gainNode);
+        osc2.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc2.start(now);
+        osc1.stop(now + 0.22);
+        osc2.stop(now + 0.22);
+      }
+      break;
+
+    case 'wrong':
+      // 低い音で不快でないブブー音
+      {
+        const osc = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(180, now);
+        osc.frequency.linearRampToValueAtTime(120, now + 0.25);
+        
+        gainNode.gain.setValueAtTime(0.08, now);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        
+        osc.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      }
+      break;
+
+    case 'bonus':
+      // 5連続正解時の上行きらびやか音
+      playTone(523.25, 0.06, now);     // C5
+      playTone(659.25, 0.06, now + 0.06); // E5
+      playTone(783.99, 0.06, now + 0.12); // G5
+      playTone(1046.50, 0.06, now + 0.18); // C6
+      playTone(1318.51, 0.2, now + 0.24);  // E6
+      break;
+
+    case 'countdown':
+      // 残り5秒からの警告ピッ音
+      playTone(880, 0.06, now);
+      break;
+
+    case 'end':
+      // ピロリローンと落ちて終わる終了音
+      playTone(880, 0.1, now);
+      playTone(783.99, 0.1, now + 0.12);
+      playTone(698.46, 0.1, now + 0.24);
+      playTone(523.25, 0.3, now + 0.36);
+      break;
+  }
+}
+
+function playTone(freq, duration, time) {
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, time);
+  gainNode.gain.setValueAtTime(0.08, time);
+  gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+  osc.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  osc.start(time);
+  osc.stop(time + duration + 0.02);
+}
+
+// ===== モード定義 & ジェネレーター =====
+const BASE_MODES = {
+  add20: {
+    name: 'たし算<br>20まで', icon: '➕', desc: '1〜20',
+    gen: () => {
+      const a = 1 + Math.floor(Math.random() * 19);
+      const b = 1 + Math.floor(Math.random() * (20 - a));
+      return { text: `${a} + ${b}`, answer: a + b };
+    }
   },
-  add100: () => {
-    const a = 1 + Math.floor(Math.random() * 99);
-    const b = 1 + Math.floor(Math.random() * (100 - a));
-    return { text: `${a} + ${b}`, answer: a + b };
+  add100: {
+    name: 'たし算<br>100まで', icon: '➕', desc: '1〜100',
+    gen: () => {
+      const a = 1 + Math.floor(Math.random() * 99);
+      const b = 1 + Math.floor(Math.random() * (100 - a));
+      return { text: `${a} + ${b}`, answer: a + b };
+    }
   },
-  sub20: () => {
-    const a = 2 + Math.floor(Math.random() * 19); // 2〜20
-    const b = 1 + Math.floor(Math.random() * a);  // 1〜a（答え0以上保証）
-    return { text: `${a} - ${b}`, answer: a - b };
+  sub20: {
+    name: 'ひき算<br>20まで', icon: '➖', desc: '答え0以上',
+    gen: () => {
+      const a = 2 + Math.floor(Math.random() * 19);
+      const b = 1 + Math.floor(Math.random() * a);
+      return { text: `${a} - ${b}`, answer: a - b };
+    }
   },
-  sub100: () => {
-    const a = 2 + Math.floor(Math.random() * 99); // 2〜100
-    const b = 1 + Math.floor(Math.random() * a);
-    return { text: `${a} - ${b}`, answer: a - b };
+  sub100: {
+    name: 'ひき算<br>100まで', icon: '➖', desc: '答え0以上',
+    gen: () => {
+      const a = 2 + Math.floor(Math.random() * 99);
+      const b = 1 + Math.floor(Math.random() * a);
+      return { text: `${a} - ${b}`, answer: a - b };
+    }
   },
-  mul: () => {
-    const a = 1 + Math.floor(Math.random() * 9);
-    const b = 1 + Math.floor(Math.random() * 9);
-    return { text: `${a} × ${b}`, answer: a * b };
+  mul: {
+    name: 'かけ算', icon: '✖️', desc: '1〜9の段',
+    gen: () => {
+      const a = 1 + Math.floor(Math.random() * 9);
+      const b = 1 + Math.floor(Math.random() * 9);
+      return { text: `${a} × ${b}`, answer: a * b };
+    }
   },
-  div: () => {
-    const b = 1 + Math.floor(Math.random() * 9);       // 除数 1〜9
-    const answer = 1 + Math.floor(Math.random() * 9);  // 商 1〜9
-    const a = b * answer;
-    return { text: `${a} ÷ ${b}`, answer };
-  },
+  div: {
+    name: 'わり算', icon: '➗', desc: '割り切れる',
+    gen: () => {
+      const b = 1 + Math.floor(Math.random() * 9);
+      const answer = 1 + Math.floor(Math.random() * 9);
+      const a = b * answer;
+      return { text: `${a} ÷ ${b}`, answer };
+    }
+  }
 };
+
+// カスタムモード管理 (ローカルストレージ)
+let customModes = {};
+try {
+  const saved = localStorage.getItem('ochizan_custom_modes');
+  if (saved) {
+    customModes = JSON.parse(saved);
+  }
+} catch (e) {
+  console.error(e);
+}
 
 const SPEED_LABELS = ['ゆっくり', 'やや遅い', 'ふつう', 'やや速い', 'はやい'];
 const BASE_FALL_SPEEDS = [0.28, 0.5, 0.8, 1.2, 1.7];
 
 let selectedModes = new Set(['add20']);
 let speedLevel = 3;
+
+// ===== 設定用の変数 =====
+let customOp = 'add';
+let selectedCustomDans = new Set([2, 3, 4, 5, 6, 7, 8, 9]); // かけ算カスタムデフォルトの段
 
 // ===== 状態 =====
 let score = 0, lives = 3, streak = 0, timeLeft = 60, maxStreak = 0;
@@ -578,21 +953,85 @@ let currentEq = null;
 let inputStr = '';
 let gameActive = false;
 
-// ===== 設定画面 =====
-function toggleMode(el) {
-  const mode = el.dataset.mode;
-  if (selectedModes.has(mode)) {
-    // 最低1つは必須
+// ===== 初期ロード時の実行 =====
+window.onload = function() {
+  initModeGrid();
+  initCustomModalDans();
+};
+
+function initModeGrid() {
+  const grid = document.getElementById('mode-grid');
+  grid.innerHTML = '';
+
+  // ベースモードを配置
+  for (const [key, mode] of Object.entries(BASE_MODES)) {
+    const isSelected = selectedModes.has(key) ? 'selected' : '';
+    const btn = document.createElement('div');
+    btn.className = `mode-btn ${isSelected}`;
+    btn.setAttribute('data-mode', key);
+    btn.onclick = () => selectMode(key, btn);
+    btn.innerHTML = `
+      <div class="check">✓</div>
+      <div class="mode-icon">${mode.icon}</div>
+      <div class="mode-name">${mode.name}</div>
+      <div class="mode-desc">${mode.desc}</div>
+    `;
+    grid.appendChild(btn);
+  }
+
+  // カスタムモードを配置
+  for (const [key, mode] of Object.entries(customModes)) {
+    const isSelected = selectedModes.has(key) ? 'selected' : '';
+    const btn = document.createElement('div');
+    btn.className = `mode-btn is-custom ${isSelected}`;
+    btn.setAttribute('data-mode', key);
+    btn.onclick = (e) => {
+      // 削除ボタンクリック時はモード変更処理を走らせない
+      if (e.target.closest('.trash-btn')) return;
+      selectMode(key, btn);
+    };
+    
+    let opIcon = '➕';
+    if (mode.type === 'sub') opIcon = '➖';
+    if (mode.type === 'mul') opIcon = '✖️';
+    if (mode.type === 'div') opIcon = '➗';
+
+    btn.innerHTML = `
+      <div class="check">✓</div>
+      <div class="mode-icon">${opIcon}</div>
+      <div class="mode-name">${escapeHTML(mode.name)}</div>
+      <div class="mode-desc">カスタム</div>
+      <button class="trash-btn" onclick="deleteCustomMode('${key}')" title="削除">🗑️</button>
+    `;
+    grid.appendChild(btn);
+  }
+}
+
+function escapeHTML(str) {
+  return str.replace(/[&<>'"]/g, 
+    tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+  );
+}
+
+// ===== モード選択トグル =====
+function selectMode(key, el) {
+  if (selectedModes.has(key)) {
     if (selectedModes.size <= 1) {
-      document.getElementById('mode-warning').style.display = 'block';
-      setTimeout(() => document.getElementById('mode-warning').style.display = 'none', 1800);
+      const warn = document.getElementById('mode-warning');
+      warn.style.display = 'block';
+      setTimeout(() => warn.style.display = 'none', 1800);
       return;
     }
-    selectedModes.delete(mode);
+    selectedModes.delete(key);
     el.classList.remove('selected');
   } else {
-    selectedModes.add(mode);
+    selectedModes.add(key);
     el.classList.add('selected');
+  }
+  
+  // オーディオコンテキストの有効化を試みる
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
   }
 }
 
@@ -601,26 +1040,273 @@ function updateSpeedLabel() {
   document.getElementById('speed-label').textContent = SPEED_LABELS[speedLevel - 1];
 }
 
-// ===== 式生成（選択中のモードからランダムに1つ選ぶ） =====
+// ===== カスタム追加関連 =====
+function openCustomModal() {
+  document.getElementById('custom-modal').style.display = 'flex';
+  setCustomOp('add');
+  // デフォルト名生成
+  const count = Object.keys(customModes).length + 1;
+  document.getElementById('custom-name').value = `カスタム${count}`;
+}
+
+function closeCustomModal() {
+  document.getElementById('custom-modal').style.display = 'none';
+}
+
+function setCustomOp(op) {
+  customOp = op;
+  document.querySelectorAll('.op-option').forEach(el => el.classList.remove('selected'));
+  document.getElementById(`op-${op}`).classList.add('selected');
+
+  // 表示の切り替え
+  const numRangeSection = document.getElementById('number-range-setting');
+  const mulSpecialSection = document.getElementById('mul-special-setting');
+  const divSpecialSection = document.getElementById('div-special-setting');
+
+  numRangeSection.style.display = 'block';
+  mulSpecialSection.style.display = 'none';
+  divSpecialSection.style.display = 'none';
+  
+  const hint = document.getElementById('op-special-hint');
+  hint.textContent = '';
+
+  if (op === 'sub') {
+    hint.textContent = '※マイナスにならないよう、後の数は前の数以下に自動で制限されます。';
+  } else if (op === 'mul') {
+    mulSpecialSection.style.display = 'block';
+    toggleMulType();
+  } else if (op === 'div') {
+    divSpecialSection.style.display = 'block';
+    toggleDivType();
+  }
+}
+
+// かけ算の「九九の段」選択グリッド初期化
+function initCustomModalDans() {
+  const container = document.getElementById('mul-dan-grid');
+  container.innerHTML = '';
+  for (let i = 1; i <= 12; i++) {
+    const isSelected = selectedCustomDans.has(i) ? 'selected' : '';
+    const item = document.createElement('div');
+    item.className = `dan-item ${isSelected}`;
+    item.textContent = `${i}の段`;
+    item.onclick = () => {
+      if (selectedCustomDans.has(i)) {
+        selectedCustomDans.delete(i);
+        item.classList.remove('selected');
+      } else {
+        selectedCustomDans.add(i);
+        item.classList.add('selected');
+      }
+    };
+    container.appendChild(item);
+  }
+}
+
+function toggleMulType() {
+  const useRange = document.getElementById('mul-use-range').checked;
+  const numRangeSection = document.getElementById('number-range-setting');
+  const mulDanContainer = document.getElementById('mul-dan-container');
+
+  if (useRange) {
+    numRangeSection.style.display = 'block';
+    mulDanContainer.style.display = 'none';
+  } else {
+    numRangeSection.style.display = 'none';
+    mulDanContainer.style.display = 'block';
+  }
+}
+
+function toggleDivType() {
+  const useKuku = document.getElementById('div-use-range').checked;
+  const numRangeSection = document.getElementById('number-range-setting');
+
+  if (useKuku) {
+    numRangeSection.style.display = 'none';
+  } else {
+    numRangeSection.style.display = 'block';
+  }
+}
+
+// 新規カスタム設定のバリデーションと保存
+function saveCustomMode() {
+  const nameInput = document.getElementById('custom-name');
+  let name = nameInput.value.trim();
+  if (!name) {
+    name = 'カスタム';
+  }
+  if (name.length > 6) {
+    name = name.substring(0, 6);
+  }
+
+  const minA = Math.max(0, Math.min(99, parseInt(document.getElementById('range-min-a').value) || 0));
+  const maxA = Math.max(0, Math.min(99, parseInt(document.getElementById('range-max-a').value) || 0));
+  const minB = Math.max(0, Math.min(99, parseInt(document.getElementById('range-min-b').value) || 0));
+  const maxB = Math.max(0, Math.min(99, parseInt(document.getElementById('range-max-b').value) || 0));
+
+  // AとBの最大・最小関係の正規化
+  const normMinA = Math.min(minA, maxA);
+  const normMaxA = Math.max(minA, maxA);
+  const normMinB = Math.min(minB, maxB);
+  const normMaxB = Math.max(minB, maxB);
+
+  const key = `custom_${Date.now()}`;
+  const newMode = {
+    name: name,
+    type: customOp,
+    minA: normMinA,
+    maxA: normMaxA,
+    minB: normMinB,
+    maxB: normMaxB
+  };
+
+  if (customOp === 'mul') {
+    const useRange = document.getElementById('mul-use-range').checked;
+    newMode.mulType = useRange ? 'range' : 'dan';
+    newMode.mulDans = Array.from(selectedCustomDans);
+    if (newMode.mulType === 'dan' && newMode.mulDans.length === 0) {
+      // 1つも段を選んでいない場合は強制で2の段に
+      newMode.mulDans = [2];
+    }
+  } else if (customOp === 'div') {
+    const useKuku = document.getElementById('div-use-range').checked;
+    newMode.divType = useKuku ? 'kuku' : 'range';
+  }
+
+  customModes[key] = newMode;
+  try {
+    localStorage.setItem('ochizan_custom_modes', JSON.stringify(customModes));
+  } catch (e) {
+    console.error(e);
+  }
+
+  initModeGrid();
+  // 新しく追加したものを自動的に選択
+  selectedModes.add(key);
+  const newBtn = document.querySelector(`[data-mode="${key}"]`);
+  if (newBtn) newBtn.classList.add('selected');
+
+  closeCustomModal();
+}
+
+// カスタムモード削除
+function deleteCustomMode(key) {
+  if (customModes[key]) {
+    delete customModes[key];
+    selectedModes.delete(key);
+    try {
+      localStorage.setItem('ochizan_custom_modes', JSON.stringify(customModes));
+    } catch (e) {
+      console.error(e);
+    }
+    // モードが空にならないようチェック
+    if (selectedModes.size === 0) {
+      selectedModes.add('add20');
+    }
+    initModeGrid();
+  }
+}
+
+// ===== カスタム問題用のジェネレーターロジック =====
+function generateCustomEq(config) {
+  const type = config.type;
+
+  if (type === 'add') {
+    // たし算カスタム
+    const a = config.minA + Math.floor(Math.random() * (config.maxA - config.minA + 1));
+    const b = config.minB + Math.floor(Math.random() * (config.maxB - config.minB + 1));
+    return { text: `${a} + ${b}`, answer: a + b };
+
+  } else if (type === 'sub') {
+    // ひき算カスタム (マイナスにならない調整)
+    const a = config.minA + Math.floor(Math.random() * (config.maxA - config.minA + 1));
+    
+    // 後の数の制限：前の数以下の必要がある
+    const limitB = Math.min(config.maxB, a);
+    const effectiveMinB = Math.min(config.minB, limitB);
+    
+    const b = effectiveMinB + Math.floor(Math.random() * (limitB - effectiveMinB + 1));
+    return { text: `${a} - ${b}`, answer: a - b };
+
+  } else if (type === 'mul') {
+    // かけ算カスタム
+    if (config.mulType === 'dan') {
+      // 九九の段指定 (1〜12の指定段 × 1〜9)
+      const dans = config.mulDans && config.mulDans.length > 0 ? config.mulDans : [2];
+      const a = dans[Math.floor(Math.random() * dans.length)];
+      const b = 1 + Math.floor(Math.random() * 9); // 通常の乗数は1〜9
+      return { text: `${a} × ${b}`, answer: a * b };
+    } else {
+      // 数の範囲指定
+      const a = config.minA + Math.floor(Math.random() * (config.maxA - config.minA + 1));
+      const b = config.minB + Math.floor(Math.random() * (config.maxB - config.minB + 1));
+      return { text: `${a} × ${b}`, answer: a * b };
+    }
+
+  } else if (type === 'div') {
+    // わり算カスタム
+    if (config.divType === 'kuku') {
+      // 九九の範囲 (商1〜9, 除数1〜9)
+      const b = 1 + Math.floor(Math.random() * 9);
+      const answer = 1 + Math.floor(Math.random() * 9);
+      const a = b * answer;
+      return { text: `${a} ÷ ${b}`, answer };
+    } else {
+      // 九九以外の範囲 (あまりなし、0除算なし、前の数が大きい)
+      let minB = Math.max(1, config.minB); // 0除算防止
+      let maxB = Math.max(1, config.maxB);
+
+      // 被除数と除数で割り切れる組み合わせを安全に探索する
+      // ループを繰り返して適切なペアを作る
+      let b = minB + Math.floor(Math.random() * (maxB - minB + 1));
+      
+      // Aの指定範囲から B の倍数となる範囲を調べる
+      let minAns = Math.max(1, Math.ceil(config.minA / b));
+      let maxAns = Math.floor(config.maxA / b);
+
+      if (minAns <= maxAns) {
+        const answer = minAns + Math.floor(Math.random() * (maxAns - minAns + 1));
+        const a = b * answer;
+        return { text: `${a} ÷ ${b}`, answer };
+      } else {
+        // もし範囲内でうまく割り切れるペアが作れない場合のフォールバック
+        // 被除数aを決め、それより小さい任意の除数bを設定して割り切るように商をランダム生成する
+        const answer = 2 + Math.floor(Math.random() * 8); // 商を2〜9に
+        b = Math.max(1, config.minB + Math.floor(Math.random() * (config.maxB - config.minB + 1)));
+        const a = b * answer;
+        return { text: `${a} ÷ ${b}`, answer };
+      }
+    }
+  }
+
+  // 万が一の代替
+  return { text: "1 + 1", answer: 2 };
+}
+
+// ===== 問題出現（選択中からランダム決定） =====
 function generateEq() {
   const modes = [...selectedModes];
-  const mode = modes[Math.floor(Math.random() * modes.length)];
-  return MODE_GENERATORS[mode]();
+  const modeKey = modes[Math.floor(Math.random() * modes.length)];
+
+  if (BASE_MODES[modeKey]) {
+    return BASE_MODES[modeKey].gen();
+  } else if (customModes[modeKey]) {
+    return generateCustomEq(customModes[modeKey]);
+  }
+  return { text: "1 + 1", answer: 2 };
 }
 
 // ===== ブロック生成 =====
 function spawnBlock() {
   if (!gameActive) return;
 
-  // ===== 問題の間隔を空ける安全チェック =====
-  // 画面内の最も上（y座標が最も小さい）にあるブロックのy座標を調べる
+  // 問題の間隔を空ける安全チェック (縦に2行分=120px)
   let minY = 9999;
   for (const b of blocks) {
     if (b.active && b.y < minY) {
       minY = b.y;
     }
   }
-  // 最上部にあるブロックがまだ十分下に下がっていない（縦に約2行分(120px)空いていない）場合は、今回の生成をスキップ
   if (minY < 120) {
     return;
   }
@@ -642,11 +1328,10 @@ function spawnBlock() {
   field.appendChild(el);
   blocks.push({ id, el, eq, y: -70, active: true });
 
-  // 生成後、即ターゲットを自動更新
   updateAutoTarget();
 }
 
-// ===== ターゲット自動選択処理 (一番下のブロックを自動で選択) =====
+// ===== ターゲット自動選択 (一番下のブロックを指定) =====
 function updateAutoTarget() {
   if (!gameActive) return;
 
@@ -662,7 +1347,6 @@ function updateAutoTarget() {
     return;
   }
 
-  // y座標が一番大きい（最も下にある）ブロックを見つける
   let lowestBlock = null;
   let maxY = -9999;
   for (const b of activeBlocks) {
@@ -673,15 +1357,12 @@ function updateAutoTarget() {
   }
 
   if (lowestBlock) {
-    // すでに選ばれているターゲットと異なる場合のみ更新
     if (!currentEq || currentEq.id !== lowestBlock.id) {
-      // 全ブロックの選択枠スタイルを一旦解除
       blocks.forEach(b => b.el.classList.remove('active-target'));
       
       currentEq = lowestBlock;
       currentEq.el.classList.add('active-target');
       
-      // 自動で切り替わったとき、入力中の文字をリセット
       inputStr = '';
       updateInputDisplay();
       setTargetText(currentEq.eq);
@@ -700,7 +1381,7 @@ function setTargetText(eq) {
   }
 }
 
-// ===== テンキー =====
+// ===== テンキー入力 =====
 function numInput(n) {
   if (!gameActive) return;
   if (inputStr.length >= 4) return;
@@ -732,16 +1413,15 @@ function numEnter() {
     maxStreak = Math.max(maxStreak, streak);
     const pts = 10 + (streak > 1 ? (streak - 1) * 5 : 0);
     score += pts;
-    triggerFlash('good');
 
-    // ===== 5問連続正解で3秒増やすロジック =====
     let timeAdded = false;
+    // 5問連続正解ごとに3秒追加
     if (streak > 0 && streak % 5 === 0) {
       timeLeft += 3;
       document.getElementById('hud-timer').textContent = timeLeft;
       timeAdded = true;
+      playSound('bonus'); // ボーナス音
 
-      // タイマー（HUD）に回復したことを示す緑の強調エフェクトを適用
       const timerVal = document.getElementById('hud-timer');
       timerVal.style.color = 'var(--green)';
       timerVal.style.transform = 'scale(1.25)';
@@ -749,9 +1429,12 @@ function numEnter() {
         timerVal.style.transform = 'scale(1)';
         timerVal.style.color = timeLeft <= 10 ? 'var(--red)' : 'var(--yellow)';
       }, 800);
+    } else {
+      playSound('correct'); // 通常正解音
     }
 
-    showScorePop('+' + pts + (timeAdded ? ' (⏱+3s)' : ''), streak > 1 ? '🔥' : '');
+    triggerFlash('good');
+    showScorePop('+' + pts + (timeAdded ? ' (+3びょう)' : ''), streak > 1 ? '🔥' : '');
     showCorrectOnDisplay();
     updateStreakBadge();
     removeBlock(currentEq.id, true);
@@ -761,11 +1444,12 @@ function numEnter() {
     setTimeout(() => { 
       inputStr = ''; 
       updateInputDisplay(); 
-      updateAutoTarget(); // ターゲットを再更新
+      updateAutoTarget();
     }, 350);
   } else {
     streak = 0;
     lives--;
+    playSound('wrong'); // 不正解音
     triggerFlash('bad');
     showWrongOnDisplay(answer);
     updateStreakBadge();
@@ -823,12 +1507,10 @@ function gameTick() {
     block.y += speed;
     block.el.style.top = block.y + 'px';
 
-    // 画面の下半分を超えたら危険色にする
     if (block.y > fh * 0.6) {
       block.el.classList.add('danger');
     }
 
-    // 画面外に落ち切った場合
     if (block.y > fh) {
       if (currentEq && currentEq.id === block.id) {
         currentEq = null;
@@ -838,6 +1520,7 @@ function gameTick() {
       }
       streak = 0;
       lives--;
+      playSound('wrong'); // 地面に落ちた際も不正解音
       triggerFlash('bad');
       updateHUD();
       updateStreakBadge();
@@ -846,9 +1529,7 @@ function gameTick() {
     }
   }
 
-  // 常に一番下にあるブロックをターゲットに自動指定する
   updateAutoTarget();
-
   gameLoopId = requestAnimationFrame(gameTick);
 }
 
@@ -859,14 +1540,20 @@ function startTimer() {
     timeLeft--;
     document.getElementById('hud-timer').textContent = timeLeft;
     
-    // 残り時間に応じたカラー変更 (回復して10秒を超えた場合は黄色に戻す)
+    // 残り5秒カウントダウン音
+    if (timeLeft <= 5 && timeLeft > 0) {
+      playSound('countdown');
+    }
+
     if (timeLeft <= 10) {
       document.getElementById('hud-timer').style.color = 'var(--red)';
     } else {
       document.getElementById('hud-timer').style.color = 'var(--yellow)';
     }
     
-    if (timeLeft <= 0) endGame();
+    if (timeLeft <= 0) {
+      endGame();
+    }
   }, 1000);
 }
 
@@ -885,7 +1572,7 @@ function updateStreakBadge() {
   }
 }
 
-// ===== エフェクト =====
+// ===== エフェクト & ポップアップ =====
 function triggerFlash(type) {
   const f = document.getElementById('flash');
   f.className = ''; void f.offsetWidth; f.className = type;
@@ -895,7 +1582,7 @@ function showScorePop(text, extra) {
   const el = document.createElement('div');
   el.className = 'score-pop';
   el.textContent = (extra || '') + text;
-  el.style.left = (field.offsetWidth * 0.5 - 24) + 'px';
+  el.style.left = (field.offsetWidth * 0.5 - 40) + 'px';
   el.style.top = (field.offsetHeight * 0.4) + 'px';
   el.style.color = streak > 2 ? 'var(--orange)' : 'var(--green)';
   field.appendChild(el);
@@ -909,6 +1596,13 @@ function startGame() {
     setTimeout(() => document.getElementById('mode-warning').style.display = 'none', 1800);
     return;
   }
+
+  // 効果音再生のためのAudioContextアクティブ化
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume();
+  }
+
+  playSound('start'); // ゲーム開始音
 
   score = 0; lives = 3; streak = 0; timeLeft = 60; maxStreak = 0;
   blocks = []; blockCounter = 0;
@@ -925,11 +1619,8 @@ function startGame() {
   document.getElementById('screen-game').classList.add('active');
 
   setTimeout(() => {
-    // 最初のブロックを生成
-    const el = document.createElement('div'); // 仮生成用
     spawnBlock();
     
-    // スポーンチェックの頻度を上げる（スキップされた場合に次のチャンスをすぐ得るため）
     const spawnMs = Math.max(1800 - speedLevel * 200, 800);
     spawnIntervalId = setInterval(() => { 
       if (gameActive) spawnBlock(); 
@@ -940,14 +1631,17 @@ function startGame() {
   }, 200);
 }
 
-// ===== 選択モード名を作る =====
+// ===== 設定されたモードの日本語ラベル構築 =====
 function buildModeLabel() {
-  const names = {
-    add20: 'たし算20', add100: 'たし算100',
-    sub20: 'ひき算20', sub100: 'ひき算100',
-    mul: 'かけ算', div: 'わり算'
-  };
-  return [...selectedModes].map(m => names[m]).join('・');
+  const list = [];
+  for (const m of selectedModes) {
+    if (BASE_MODES[m]) {
+      list.push(BASE_MODES[m].name.replace('<br>', ''));
+    } else if (customModes[m]) {
+      list.push(customModes[m].name);
+    }
+  }
+  return list.join('・');
 }
 
 // ===== ゲーム終了 =====
@@ -956,6 +1650,8 @@ function endGame() {
   clearInterval(timerInterval);
   clearInterval(spawnIntervalId);
   cancelAnimationFrame(gameLoopId);
+
+  playSound('end'); // ゲーム終了音
 
   const field = document.getElementById('field');
   const overlay = document.createElement('div');
@@ -967,7 +1663,7 @@ function endGame() {
       <div style="font-size:1.5rem;margin:5px 0">${grade}</div>
       <div class="result-rows">
         <div class="result-row"><span>スコア</span><strong>${score}</strong></div>
-        <div class="result-row"><span>種類</span><strong style="font-size:0.75rem;font-family:inherit">${buildModeLabel()}</strong></div>
+        <div class="result-row"><span>種類</span><strong style="font-size:0.75rem;font-family:inherit;word-break:break-all">${buildModeLabel()}</strong></div>
         <div class="result-row"><span>ライフ残り</span><strong>${'♥'.repeat(Math.max(0,lives)) || 'なし'}</strong></div>
         <div class="result-row"><span>最高連続正解</span><strong>${maxStreak}</strong></div>
       </div>
