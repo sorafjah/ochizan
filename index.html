@@ -178,9 +178,15 @@
   }
 
   /* ===== 速さスライダー ===== */
-  .slider-row { width: 100%; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
-  .slider-label { display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; font-weight: bold; }
-  .slider-label span { color: var(--muted); font-size: 0.75rem; font-weight: normal; }
+  .slider-row {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex-shrink: 0;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
 
   input[type=range] {
     width: 100%; height: 6px;
@@ -622,12 +628,9 @@
   </div>
   <div id="mode-warning">1つ以上選んでください</div>
 
-  <div class="section-title">落ちる速さ</div>
+  <!-- 速さスライダー（ラベル類を非表示に整理） -->
   <div class="slider-row">
-    <div class="slider-label">
-      速さ <span id="speed-label">ふつう</span>
-    </div>
-    <input type="range" id="speed-slider" min="1" max="5" value="3" oninput="updateSpeedLabel()">
+    <input type="range" id="speed-slider" min="1" max="10" value="3" oninput="updateSpeedLabel()">
     <div class="speed-labels"><span>ゆっくり</span><span>はやい</span></div>
   </div>
 
@@ -871,8 +874,16 @@ function playTone(freq, duration, time) {
   osc.stop(time + duration + 0.02);
 }
 
-// ===== モード定義 & ジェネレーター =====
+// ===== モード定義 & ジェネレーター (配置と定義を修正) =====
 const BASE_MODES = {
+  add10: {
+    name: 'たし算<br>10まで', icon: '➕', desc: '1〜10',
+    gen: () => {
+      const a = 1 + Math.floor(Math.random() * 9);
+      const b = 1 + Math.floor(Math.random() * (10 - a));
+      return { text: `${a} + ${b}`, answer: a + b };
+    }
+  },
   add20: {
     name: 'たし算<br>20まで', icon: '➕', desc: '1〜20',
     gen: () => {
@@ -881,12 +892,20 @@ const BASE_MODES = {
       return { text: `${a} + ${b}`, answer: a + b };
     }
   },
-  add100: {
-    name: 'たし算<br>100まで', icon: '➕', desc: '1〜100',
+  mul: {
+    name: 'かけ算', icon: '✖️', desc: '1〜9の段',
     gen: () => {
-      const a = 1 + Math.floor(Math.random() * 99);
-      const b = 1 + Math.floor(Math.random() * (100 - a));
-      return { text: `${a} + ${b}`, answer: a + b };
+      const a = 1 + Math.floor(Math.random() * 9);
+      const b = 1 + Math.floor(Math.random() * 9);
+      return { text: `${a} × ${b}`, answer: a * b };
+    }
+  },
+  sub10: {
+    name: 'ひき算<br>10まで', icon: '➖', desc: '答え0以上',
+    gen: () => {
+      const a = 2 + Math.floor(Math.random() * 9);
+      const b = 1 + Math.floor(Math.random() * a);
+      return { text: `${a} - ${b}`, answer: a - b };
     }
   },
   sub20: {
@@ -895,22 +914,6 @@ const BASE_MODES = {
       const a = 2 + Math.floor(Math.random() * 19);
       const b = 1 + Math.floor(Math.random() * a);
       return { text: `${a} - ${b}`, answer: a - b };
-    }
-  },
-  sub100: {
-    name: 'ひき算<br>100まで', icon: '➖', desc: '答え0以上',
-    gen: () => {
-      const a = 2 + Math.floor(Math.random() * 99);
-      const b = 1 + Math.floor(Math.random() * a);
-      return { text: `${a} - ${b}`, answer: a - b };
-    }
-  },
-  mul: {
-    name: 'かけ算', icon: '✖️', desc: '1〜9の段',
-    gen: () => {
-      const a = 1 + Math.floor(Math.random() * 9);
-      const b = 1 + Math.floor(Math.random() * 9);
-      return { text: `${a} × ${b}`, answer: a * b };
     }
   },
   div: {
@@ -935,10 +938,10 @@ try {
   console.error(e);
 }
 
-const SPEED_LABELS = ['ゆっくり', 'やや遅い', 'ふつう', 'やや速い', 'はやい'];
-const BASE_FALL_SPEEDS = [0.28, 0.5, 0.8, 1.2, 1.7];
+// 落下速度定義（10段階、最大を3.4 [従来の2倍] に設定。初期値3段階目の時はこれまでと同様「0.8」）
+const BASE_FALL_SPEEDS = [0.2, 0.4, 0.8, 1.1, 1.4, 1.8, 2.2, 2.6, 3.0, 3.4];
 
-let selectedModes = new Set(['add20']);
+let selectedModes = new Set(['add10']); // デフォルト選択を「たし算10まで」に変更
 let speedLevel = 3;
 
 // ===== 設定用の変数 =====
@@ -1035,9 +1038,9 @@ function selectMode(key, el) {
   }
 }
 
+// 速さスライダー変更時の処理（表示ラベル類の削除に伴い、変数更新のみに修正）
 function updateSpeedLabel() {
   speedLevel = parseInt(document.getElementById('speed-slider').value);
-  document.getElementById('speed-label').textContent = SPEED_LABELS[speedLevel - 1];
 }
 
 // ===== カスタム追加関連 =====
@@ -1201,7 +1204,7 @@ function deleteCustomMode(key) {
     }
     // モードが空にならないようチェック
     if (selectedModes.size === 0) {
-      selectedModes.add('add20');
+      selectedModes.add('add10');
     }
     initModeGrid();
   }
@@ -1621,7 +1624,8 @@ function startGame() {
   setTimeout(() => {
     spawnBlock();
     
-    const spawnMs = Math.max(1800 - speedLevel * 200, 800);
+    // 段階が10段に増えたことに合わせて、落下スピードと調和した出現周期に調整
+    const spawnMs = Math.max(1800 - speedLevel * 110, 600);
     spawnIntervalId = setInterval(() => { 
       if (gameActive) spawnBlock(); 
     }, spawnMs);
