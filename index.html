@@ -951,6 +951,7 @@ let selectedCustomDans = new Set([2, 3, 4, 5, 6, 7, 8, 9]); // かけ算カス�
 // ===== 状態 =====
 let score = 0, lives = 3, streak = 0, timeLeft = 60, maxStreak = 0;
 let timerInterval = null, gameLoopId = null, spawnIntervalId = null;
+let lastTickTime = null; // delta-time正規化用（120Hz iPad対策）
 let blocks = [], blockCounter = 0;
 let currentEq = null;
 let inputStr = '';
@@ -1498,11 +1499,15 @@ function removeBlock(id, success) {
 }
 
 // ===== メインループ =====
-function gameTick() {
+function gameTick(now) {
   if (!gameActive) return;
+  // delta-time正規化（60fps基準）。120Hz iPadでも落下速度が変わらないようにする
+  if (lastTickTime === null) lastTickTime = now;
+  const dtFactor = Math.min((now - lastTickTime) / (1000 / 60), 3);
+  lastTickTime = now;
   const field = document.getElementById('field');
   const fh = field.offsetHeight;
-  const speed = BASE_FALL_SPEEDS[speedLevel - 1];
+  const speed = BASE_FALL_SPEEDS[speedLevel - 1] * dtFactor;
 
   for (let i = blocks.length - 1; i >= 0; i--) {
     const block = blocks[i];
@@ -1630,6 +1635,7 @@ function startGame() {
       if (gameActive) spawnBlock(); 
     }, spawnMs);
     
+    lastTickTime = null; // 新しいゲーム開始時にリセット
     gameLoopId = requestAnimationFrame(gameTick);
     startTimer();
   }, 200);
